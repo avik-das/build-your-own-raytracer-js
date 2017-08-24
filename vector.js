@@ -29,6 +29,14 @@ class Vector3 {
     );
   }
 
+  dot(other) {
+    return (
+      this.x * other.x +
+      this.y * other.y +
+      this.z * other.z
+    );
+  }
+
   static lerp(start, end, t) {
     return start.scale(1 - t).plus(end.scale(t));
   }

@@ -6,6 +6,41 @@ class RayTracer {
   }
 
   tracedValueAtPixel(x, y) {
+    function min(xs, f) {
+      if (xs.length == 0) {
+        return null;
+      }
+
+      let minValue = Infinity;
+      let minElement = null;
+      for (let x of xs) {
+        const value = f(x);
+        if (value < minValue) {
+          minValue = value;
+          minElement = x;
+        }
+      }
+
+      return minElement;
+    }
+
+    const ray = this._rayForPixel(x, y);
+    const intersection = min(
+      this.scene
+        .objects
+        .map(obj => ({object: obj, t: obj.getIntersection(ray)}))
+        .filter(intersection => intersection.t),
+      intersection => intersection.t
+    );
+
+    if (!intersection) {
+      return new Color(0, 0, 0);
+    }
+
+    return intersection.object.color;
+  }
+
+  _rayForPixel(x, y) {
     const xt = x / this.w;
     const yt = (this.h - y - 1) / this.h;
 
@@ -22,15 +57,9 @@ class RayTracer {
     );
 
     const point = Vector3.lerp(bottom, top, yt);
-    const ray = new Ray(
+    return new Ray(
       point,
       point.minus(this.scene.camera)
-    );
-
-    return new Color(
-      (ray.direction.x + 1.2) / 2.6,
-      (ray.direction.y + 0.9) / 2,
-      ray.direction.z / -6
     );
   }
 }
@@ -45,7 +74,24 @@ const SCENE = {
     topRight: new Vector3(1.28, 0.86, -0.5),
     bottomLeft: new Vector3(-1.28, -0.86, -0.5),
     bottomRight: new Vector3(1.28, -0.86, -0.5)
-  }
+  },
+  objects: [
+    new Sphere(
+      new Vector3(-1.1, 0.6, -1),
+      0.2,
+      new Color(0, 0, 1)
+    ),
+    new Sphere(
+      new Vector3(0.2, -0.1, -1),
+      0.5,
+      new Color(1, 0, 0)
+    ),
+    new Sphere(
+      new Vector3(1.2, -0.5, -1.75),
+      0.4,
+      new Color(0, 1, 0)
+    )
+  ]
 };
 
 const image = new Image(WIDTH, HEIGHT);
