@@ -1,4 +1,7 @@
 const MAX_BOUNCES = 3;
+const NUM_SAMPLES_PER_DIRECTION = 2;
+const NUM_SAMPLES_PER_PIXEL =
+  NUM_SAMPLES_PER_DIRECTION * NUM_SAMPLES_PER_DIRECTION;
 
 class RayTracer {
   constructor(scene, w, h) {
@@ -8,8 +11,21 @@ class RayTracer {
   }
 
   tracedValueAtPixel(x, y) {
-    const ray = this._rayForPixel(x, y);
-    return this._tracedValueForRay(ray, MAX_BOUNCES);
+    const color = new Color(0, 0, 0);
+
+    for (let dx = 0; dx < NUM_SAMPLES_PER_DIRECTION; dx++) {
+      for (let dy = 0; dy < NUM_SAMPLES_PER_DIRECTION; dy++) {
+        const ray = this._rayForPixel(
+          x + dx / NUM_SAMPLES_PER_DIRECTION,
+          y + dy / NUM_SAMPLES_PER_DIRECTION
+        );
+
+        const sample = this._tracedValueForRay(ray, MAX_BOUNCES);
+        color.addInPlace(sample.scale(1 / NUM_SAMPLES_PER_PIXEL));
+      }
+    }
+
+    return color;
   }
 
   _tracedValueForRay(ray, depth) {
