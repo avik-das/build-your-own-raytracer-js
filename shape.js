@@ -1,8 +1,8 @@
 class Sphere {
-  constructor(center, radius, color) {
+  constructor(center, radius, material) {
     this.center = center;
     this.radius = radius;
-    this.color = color;
+    this.material = material;
   }
 
   getIntersection(ray) {
@@ -37,5 +37,9 @@ class Sphere {
     }
 
     return Math.min.apply(null, ts);
+  }
+
+  normalAt(point) {
+    return point.minus(this.center).normalized();
   }
 }

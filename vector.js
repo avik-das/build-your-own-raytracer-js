@@ -37,6 +37,15 @@ class Vector3 {
     );
   }
 
+  normalized() {
+    const mag = Math.sqrt(this.dot(this));
+    return new Vector3(
+      this.x / mag,
+      this.y / mag,
+      this.z / mag
+    );
+  }
+
   static lerp(start, end, t) {
     return start.scale(1 - t).plus(end.scale(t));
   }
@@ -46,5 +55,9 @@ class Ray {
   constructor(origin, direction) {
     this.origin = origin;
     this.direction = direction;
+  }
+
+  at(t) {
+    return this.origin.plus(this.direction.scale(t));
   }
 }

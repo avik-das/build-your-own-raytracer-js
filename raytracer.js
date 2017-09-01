@@ -28,8 +28,20 @@ class RayTracer {
     const intersection = min(
       this.scene
         .objects
-        .map(obj => ({object: obj, t: obj.getIntersection(ray)}))
-        .filter(intersection => intersection.t),
+        .map(obj => {
+          const t = obj.getIntersection(ray);
+          if (!t) { return null; }
+
+          let point = ray.at(t);
+
+          return {
+            object: obj,
+            t: t,
+            point: point,
+            normal: obj.normalAt(point)
+          };
+        })
+        .filter(intersection => intersection),
       intersection => intersection.t
     );
 
@@ -37,7 +49,58 @@ class RayTracer {
       return new Color(0, 0, 0);
     }
 
-    return intersection.object.color;
+    return this._colorAtIntersection(intersection);
+  }
+
+  _colorAtIntersection(intersection) {
+    let color = new Color(0, 0, 0);
+    const material = intersection.object.material;
+
+    const v = this.scene
+      .camera
+      .minus(intersection.point)
+      .normalized();
+
+    this.scene
+      .lights
+      .forEach(light => {
+        const l = light
+          .position
+          .minus(intersection.point)
+          .normalized();
+
+        const lightInNormalDirection = intersection.normal.dot(l);
+        if (lightInNormalDirection < 0) {
+          return;
+        }
+
+        const diffuse = material
+          .kd
+          .times(light.id)
+          .scale(lightInNormalDirection);
+        color.addInPlace(diffuse);
+
+        const r = intersection
+          .normal
+          .scale(2)
+          .scale(lightInNormalDirection)
+          .minus(l);
+
+        const amountReflectedAtViewer = v.dot(r);
+        const specular = material
+          .ks
+          .times(light.is)
+          .scale(Math.pow(amountReflectedAtViewer, material.alpha));
+        color.addInPlace(specular);
+      });
+
+    const ambient = material
+      .ka
+      .times(this.scene.ia);
+    color.addInPlace(ambient);
+
+    color.clampInPlace();
+    return color;
   }
 
   _rayForPixel(x, y) {
@@ -75,21 +138,49 @@ const SCENE = {
     bottomLeft: new Vector3(-1.28, -0.86, -0.5),
     bottomRight: new Vector3(1.28, -0.86, -0.5)
   },
+  ia: new Color(0.5, 0.5, 0.5),
+  lights: [
+    {
+      position: new Vector3(-3, -0.5, 1),
+      id: new Color(0.8, 0.3, 0.3),
+      is: new Color(0.8, 0.8, 0.8)
+    },
+    {
+      position: new Vector3(3, 2, 1),
+      id: new Color(0.4, 0.4, 0.9),
+      is: new Color(0.8, 0.8, 0.8)
+    }
+  ],
   objects: [
     new Sphere(
       new Vector3(-1.1, 0.6, -1),
       0.2,
-      new Color(0, 0, 1)
+      {
+        ka: new Color(0.1, 0.1, 0.1),
+        kd: new Color(0.5, 0.5, 0.9),
+        ks: new Color(0.7, 0.7, 0.7),
+        alpha: 20
+      }
     ),
     new Sphere(
       new Vector3(0.2, -0.1, -1),
       0.5,
-      new Color(1, 0, 0)
+      {
+        ka: new Color(0.1, 0.1, 0.1),
+        kd: new Color(0.9, 0.5, 0.5),
+        ks: new Color(0.7, 0.7, 0.7),
+        alpha: 20
+      }
     ),
     new Sphere(
       new Vector3(1.2, -0.5, -1.75),
       0.4,
-      new Color(0, 1, 0)
+      {
+        ka: new Color(0.1, 0.1, 0.1),
+        kd: new Color(0.5, 0.9, 0.5),
+        ks: new Color(0.7, 0.7, 0.7),
+        alpha: 20
+      }
     )
   ]
 };
