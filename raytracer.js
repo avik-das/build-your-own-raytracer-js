@@ -74,6 +74,15 @@ class RayTracer {
           return;
         }
 
+        const isShadowed = this._isPointInShadowFromLight(
+          intersection.point,
+          intersection.object,
+          light
+        );
+        if (isShadowed) {
+          return;
+        }
+
         const diffuse = material
           .kd
           .times(light.id)
@@ -101,6 +110,27 @@ class RayTracer {
 
     color.clampInPlace();
     return color;
+  }
+
+  _isPointInShadowFromLight(point, objectToExclude, light) {
+    const shadowRay = new Ray(
+      point,
+      light.position.minus(point)
+    );
+
+    for (let i in this.scene.objects) {
+      const obj = this.scene.objects[i];
+      if (obj == objectToExclude) {
+        continue;
+      }
+
+      const t = obj.getIntersection(shadowRay);
+      if (t && t <= 1) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   _rayForPixel(x, y) {
