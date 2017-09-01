@@ -1,3 +1,5 @@
+const MAX_BOUNCES = 3;
+
 class RayTracer {
   constructor(scene, w, h) {
     this.scene = scene;
@@ -6,6 +8,11 @@ class RayTracer {
   }
 
   tracedValueAtPixel(x, y) {
+    const ray = this._rayForPixel(x, y);
+    return this._tracedValueForRay(ray, MAX_BOUNCES);
+  }
+
+  _tracedValueForRay(ray, depth) {
     function min(xs, f) {
       if (xs.length == 0) {
         return null;
@@ -24,7 +31,6 @@ class RayTracer {
       return minElement;
     }
 
-    const ray = this._rayForPixel(x, y);
     const intersection = min(
       this.scene
         .objects
@@ -49,7 +55,25 @@ class RayTracer {
       return new Color(0, 0, 0);
     }
 
-    return this._colorAtIntersection(intersection);
+    const color = this._colorAtIntersection(intersection);
+
+    if (depth > 0) {
+      const v = ray.direction.scale(-1).normalized();
+      const r = intersection
+        .normal
+        .scale(2)
+        .scale(intersection.normal.dot(v))
+        .minus(v);
+      const reflectionRay = new Ray(
+        intersection.point.plus(intersection.normal.scale(0.01)),
+        r
+      );
+
+      const reflected = this._tracedValueForRay(reflectionRay, depth - 1);
+      color.addInPlace(reflected.times(intersection.object.material.kr));
+    }
+
+    return color;
   }
 
   _colorAtIntersection(intersection) {
@@ -189,7 +213,9 @@ const SCENE = {
         ka: new Color(0.1, 0.1, 0.1),
         kd: new Color(0.5, 0.5, 0.9),
         ks: new Color(0.7, 0.7, 0.7),
-        alpha: 20
+        alpha: 20,
+        kr: new Color(0.1, 0.1, 0.2)
+
       }
     ),
     new Sphere(
@@ -199,7 +225,9 @@ const SCENE = {
         ka: new Color(0.1, 0.1, 0.1),
         kd: new Color(0.9, 0.5, 0.5),
         ks: new Color(0.7, 0.7, 0.7),
-        alpha: 20
+        alpha: 20,
+        kr: new Color(0.2, 0.1, 0.1)
+
       }
     ),
     new Sphere(
@@ -207,9 +235,10 @@ const SCENE = {
       0.4,
       {
         ka: new Color(0.1, 0.1, 0.1),
-        kd: new Color(0.5, 0.9, 0.5),
+        kd: new Color(0.1, 0.5, 0.1),
         ks: new Color(0.7, 0.7, 0.7),
-        alpha: 20
+        alpha: 20,
+        kr: new Color(0.8, 0.9, 0.8)
       }
     )
   ]
